@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use maud::{html, html_render, Markup, Render};
+use maud::{Markup, Render, html, html_render};
 
 #[derive(Debug)]
 struct Entry {
@@ -11,7 +11,7 @@ struct Entry {
 }
 
 mod btn {
-    use maud::{html_render, Render};
+    use maud::{Render, html_render};
 
     #[derive(Copy, Clone)]
     pub enum RequestMethod {
