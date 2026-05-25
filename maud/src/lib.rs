@@ -11,7 +11,7 @@
 
 extern crate alloc;
 
-use alloc::{borrow::Cow, boxed::Box, string::String, sync::Arc};
+use alloc::{borrow::Cow, boxed::Box, string::String};
 use core::fmt::{self, Arguments, Display, Write};
 
 pub use maud_macros::html;
@@ -42,6 +42,12 @@ pub use maud_macros::html;
 pub use maud_macros::html_render;
 
 mod escape;
+
+#[cfg(feature = "json")]
+extern crate std;
+
+#[cfg(feature = "json")]
+pub mod json;
 
 /// An adapter that escapes HTML special characters.
 ///
@@ -175,7 +181,8 @@ impl<T: Render + ?Sized> Render for Box<T> {
     }
 }
 
-impl<T: Render + ?Sized> Render for Arc<T> {
+#[cfg(target_has_atomic = "ptr")]
+impl<T: Render + ?Sized> Render for alloc::sync::Arc<T> {
     fn render_to(&self, w: &mut String) {
         T::render_to(self, w);
     }
@@ -186,8 +193,7 @@ macro_rules! impl_render_with_display {
         $(
             impl Render for $ty {
                 fn render_to(&self, w: &mut String) {
-                    // TODO: remove the explicit arg when Rust 1.58 is released
-                    format_args!("{self}", self = self).render_to(w);
+                    format_args!("{self}").render_to(w);
                 }
             }
         )*
@@ -334,10 +340,10 @@ mod actix_support {
 
     use crate::PreEscaped;
     use actix_web_dep::{
+        HttpRequest, HttpResponse, Responder,
         body::{BodySize, MessageBody},
         http::header,
         web::Bytes,
-        HttpRequest, HttpResponse, Responder,
     };
     use alloc::string::String;
 
@@ -372,7 +378,7 @@ mod actix_support {
 mod tide_support {
     use crate::PreEscaped;
     use alloc::string::String;
-    use tide::{http::mime, Response, StatusCode};
+    use tide::{Response, StatusCode, http::mime};
 
     impl From<PreEscaped<String>> for Response {
         fn from(markup: PreEscaped<String>) -> Response {
@@ -388,7 +394,7 @@ mod tide_support {
 mod poem_support {
     use crate::PreEscaped;
     use alloc::string::String;
-    use poem::{web::Html, IntoResponse, Response};
+    use poem::{IntoResponse, Response, web::Html};
 
     impl IntoResponse for PreEscaped<String> {
         fn into_response(self) -> Response {
@@ -402,7 +408,7 @@ mod axum_support {
     use crate::PreEscaped;
     use alloc::string::String;
     use axum_core::response::{IntoResponse, Response};
-    use http::{header, HeaderMap, HeaderValue};
+    use http::{HeaderValue, header};
 
     impl IntoResponse for PreEscaped<String> {
         fn into_response(self) -> Response {
@@ -433,7 +439,7 @@ mod submillisecond_support {
     use crate::PreEscaped;
     use alloc::string::String;
     use submillisecond::{
-        http::{header, HeaderMap, HeaderValue},
+        http::{HeaderMap, HeaderValue, header},
         response::{IntoResponse, Response},
     };
 
@@ -453,7 +459,7 @@ mod submillisecond_support {
 mod salvo_support {
     use crate::PreEscaped;
     use alloc::string::String;
-    use http::{header::CONTENT_TYPE, HeaderValue};
+    use http::{HeaderValue, header::CONTENT_TYPE};
     use salvo_core::{http::Response, writing::Scribe};
 
     impl Scribe for PreEscaped<String> {
@@ -469,7 +475,7 @@ mod salvo_support {
 
 #[doc(hidden)]
 pub mod macro_private {
-    use crate::{display, Render};
+    use crate::{Render, display};
     use alloc::string::String;
     use core::fmt::Display;
 
