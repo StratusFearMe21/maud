@@ -1,4 +1,4 @@
-use maud::{html, html_render, Markup, Render};
+use maud::{Markup, Render, html, html_render};
 
 #[test]
 fn literals() {
